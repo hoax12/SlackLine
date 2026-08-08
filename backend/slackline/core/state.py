@@ -164,12 +164,18 @@ Severity = Literal["fail", "warn"]
 
 class Finding(Frozen):
     """A structured audit result. Findings accumulate across repair
-    iterations and are never overwritten."""
+    iterations and are never overwritten.
+
+    ``window`` carries the concrete time interval a check refers to (e.g.
+    the exact food gap), so repair can consume it as data — no English
+    parsing anywhere.
+    """
 
     check: CheckName
     severity: Severity
     message: str
     subject_ids: tuple[str, ...] = ()
+    window: Optional[tuple[int, int]] = None
     iteration: int = 0
 
 

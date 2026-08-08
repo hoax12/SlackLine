@@ -16,8 +16,14 @@ from slackline.core.state import LatLng, Leg, minutes_to_hhmm
 
 # Walks longer than this are not worth it; try transit or estimate instead.
 WALK_MAX_MIN = 25
-# How far we are willing to walk to/from a transit stop.
-STOP_WALK_RADIUS_KM = 1.5
+# How far we are willing to walk to/from a transit stop. 2 km (~30 min) is
+# deliberately generous: for an intercity rail leg people do cross town to
+# the terminal, and local feeder transit (Muni) is not modeled in v1.
+STOP_WALK_RADIUS_KM = 2.0
+# Nearby-stop candidates to consider. BART feeds carry several platform
+# entries per station, so a small limit can crowd out a slightly farther
+# Caltrain platform entirely. This is a perf guard, not a policy knob.
+STOP_NEAR_LIMIT = 20
 
 
 @runtime_checkable
@@ -172,10 +178,16 @@ def _last_journey_info(
     service_date: str,
 ) -> Optional[tuple[int, str]]:
     from_stops = list(
-        index.stops_near(from_loc.lat, from_loc.lon, radius_km=STOP_WALK_RADIUS_KM)
+        index.stops_near(
+            from_loc.lat, from_loc.lon,
+            radius_km=STOP_WALK_RADIUS_KM, limit=STOP_NEAR_LIMIT,
+        )
     )
     to_stops = list(
-        index.stops_near(to_loc.lat, to_loc.lon, radius_km=STOP_WALK_RADIUS_KM)
+        index.stops_near(
+            to_loc.lat, to_loc.lon,
+            radius_km=STOP_WALK_RADIUS_KM, limit=STOP_NEAR_LIMIT,
+        )
     )
     if not from_stops or not to_stops:
         return None
@@ -199,10 +211,16 @@ def _verified_transit_leg(
     if index is None or not index.covers(service_date):
         return None
     from_stops = list(
-        index.stops_near(from_loc.lat, from_loc.lon, radius_km=STOP_WALK_RADIUS_KM)
+        index.stops_near(
+            from_loc.lat, from_loc.lon,
+            radius_km=STOP_WALK_RADIUS_KM, limit=STOP_NEAR_LIMIT,
+        )
     )
     to_stops = list(
-        index.stops_near(to_loc.lat, to_loc.lon, radius_km=STOP_WALK_RADIUS_KM)
+        index.stops_near(
+            to_loc.lat, to_loc.lon,
+            radius_km=STOP_WALK_RADIUS_KM, limit=STOP_NEAR_LIMIT,
+        )
     )
     if not from_stops or not to_stops:
         return None

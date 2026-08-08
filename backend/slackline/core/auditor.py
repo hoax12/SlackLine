@@ -232,6 +232,7 @@ def _check_food_gap(
                     f"{length // 60}h{length % 60:02d}m without an eating "
                     f"opportunity ({minutes_to_hhmm(start)}-{minutes_to_hhmm(end)})"
                 ),
+                window=(start, end),
                 iteration=iteration,
             )
         )

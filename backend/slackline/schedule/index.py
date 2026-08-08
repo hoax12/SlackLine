@@ -11,6 +11,7 @@ service date, with post-midnight service above 1440 (GTFS 24:xx preserved).
 
 from __future__ import annotations
 
+import bisect
 import datetime as dt
 import math
 import sqlite3
@@ -55,6 +56,11 @@ class ScheduleIndex:
         self._meta: Optional[dict[str, str]] = None
         self._stops: Optional[list[Stop]] = None
         self._service_cache: dict[tuple[str, str], frozenset[str]] = {}
+        # Pure memoization: the Scheduler resolves the same stop pairs over
+        # and over across insertion trials; the SQL scan is the hot path.
+        self._pair_cache: dict[tuple, list[Departure]] = {}
+        self._near_cache: dict[tuple, list[Stop]] = {}
+        self._stop_lookup_cache: Optional[dict[tuple[str, str], Stop]] = None
 
     # -- plumbing ----------------------------------------------------------
 
@@ -114,13 +120,19 @@ class ScheduleIndex:
     ) -> list[Stop]:
         """Stops within radius, nearest first. Station counts are small
         (tens), so a python-side scan is simpler and fast enough."""
+        cache_key = (round(lat, 5), round(lon, 5), radius_km, limit)
+        cached = self._near_cache.get(cache_key)
+        if cached is not None:
+            return cached
         scored = []
         for stop in self.all_stops():
             d = _haversine_km(lat, lon, stop.lat, stop.lon)
             if d <= radius_km:
                 scored.append((d, stop))
         scored.sort(key=lambda pair: (pair[0], pair[1].agency, pair[1].stop_id))
-        return [stop for _, stop in scored[:limit]]
+        result = [stop for _, stop in scored[:limit]]
+        self._near_cache[cache_key] = result
+        return result
 
     # -- service calendars ------------------------------------------------------
 
@@ -165,6 +177,14 @@ class ScheduleIndex:
         """All same-trip rides from any from_stop to any to_stop on the date,
         sorted by departure time. Same-trip with increasing stop_sequence is
         what makes a ride real (right line, right direction)."""
+        cache_key = (
+            tuple(sorted((s.agency, s.stop_id) for s in from_stops)),
+            tuple(sorted((s.agency, s.stop_id) for s in to_stops)),
+            service_date,
+        )
+        cached = self._pair_cache.get(cache_key)
+        if cached is not None:
+            return cached
         by_agency: dict[str, tuple[list[Stop], list[Stop]]] = {}
         for stop in from_stops:
             by_agency.setdefault(stop.agency, ([], []))[0].append(stop)
@@ -210,6 +230,7 @@ class ScheduleIndex:
                     )
                 )
         out.sort(key=lambda d: (d.dep_min, d.arr_min, d.agency, d.trip_id))
+        self._pair_cache[cache_key] = out
         return out
 
     def next_departure(
@@ -255,7 +276,16 @@ class ScheduleIndex:
     def _half_rides(
         self, stops: list[Stop], service_date: str, from_side: bool
     ) -> list[Departure]:
-        stop_lookup = {(s.agency, s.stop_id): s for s in self.all_stops()}
+        cache_key = (
+            "half",
+            tuple(sorted((s.agency, s.stop_id) for s in stops)),
+            service_date,
+            from_side,
+        )
+        cached = self._pair_cache.get(cache_key)
+        if cached is not None:
+            return cached
+        stop_lookup = self._stop_lookup()
         out: list[Departure] = []
         by_agency: dict[str, list[Stop]] = {}
         for stop in stops:
@@ -299,7 +329,89 @@ class ScheduleIndex:
                         arr_min=arr,
                     )
                 )
+        self._pair_cache[cache_key] = out
         return out
+
+    def _stop_lookup(self) -> dict[tuple[str, str], Stop]:
+        if self._stop_lookup_cache is None:
+            self._stop_lookup_cache = {
+                (s.agency, s.stop_id): s for s in self.all_stops()
+            }
+        return self._stop_lookup_cache
+
+    # The Scheduler calls next_journey thousands of times per plan while it
+    # tries insertion positions, so the after_min-independent structure is
+    # precomputed once per (stop set, date) and each query is a bisect.
+
+    def _from_tables(self, from_stops: list[Stop], service_date: str) -> dict:
+        """Per intermediate stop: first-leg rides sorted by (dep, arr, trip)
+        with a suffix argmin over (arr, dep, trip) — 'earliest arrival among
+        departures at or after t' in O(log n) — plus the same rides sorted by
+        (arr,) with a prefix argmax over (dep, -arr, trip) — 'latest departure
+        among arrivals at or before t'."""
+        key = (
+            "from_tables",
+            tuple(sorted((s.agency, s.stop_id) for s in from_stops)),
+            service_date,
+        )
+        cached = self._pair_cache.get(key)
+        if cached is not None:
+            return cached
+        groups: dict[tuple[str, str], list[Departure]] = {}
+        for ride in self._rides_from(from_stops, service_date):
+            groups.setdefault((ride.agency, ride.to_stop.stop_id), []).append(ride)
+        tables = {}
+        for group_key, rides in groups.items():
+            by_dep = sorted(rides, key=lambda d: (d.dep_min, d.arr_min, d.trip_id))
+            deps = [d.dep_min for d in by_dep]
+            suffix_min_arr: list[int] = [0] * len(by_dep)
+            best = len(by_dep) - 1
+            for i in range(len(by_dep) - 1, -1, -1):
+                cand, cur = by_dep[i], by_dep[best]
+                if (cand.arr_min, cand.dep_min, cand.trip_id) <= (
+                    cur.arr_min, cur.dep_min, cur.trip_id
+                ):
+                    best = i
+                suffix_min_arr[i] = best
+            by_arr = sorted(rides, key=lambda d: d.arr_min)
+            arrs = [d.arr_min for d in by_arr]
+            prefix_max_dep: list[int] = [0] * len(by_arr)
+            best = 0
+            for i in range(len(by_arr)):
+                cand, cur = by_arr[i], by_arr[best]
+                if (cand.dep_min, -cand.arr_min, cand.trip_id) >= (
+                    cur.dep_min, -cur.arr_min, cur.trip_id
+                ):
+                    best = i
+                prefix_max_dep[i] = best
+            tables[group_key] = (by_dep, deps, suffix_min_arr,
+                                 by_arr, arrs, prefix_max_dep)
+        self._pair_cache[key] = tables
+        return tables
+
+    def _to_tables(self, to_stops: list[Stop], service_date: str) -> dict:
+        """Per intermediate stop: second-leg rides sorted by (dep, arr, trip)
+        — 'first connection departing at or after t' is a bisect — plus the
+        single ride with the latest departure (max (dep, -arr, trip))."""
+        key = (
+            "to_tables",
+            tuple(sorted((s.agency, s.stop_id) for s in to_stops)),
+            service_date,
+        )
+        cached = self._pair_cache.get(key)
+        if cached is not None:
+            return cached
+        groups: dict[tuple[str, str], list[Departure]] = {}
+        for ride in self._rides_to(to_stops, service_date):
+            groups.setdefault((ride.agency, ride.from_stop.stop_id), []).append(ride)
+        tables = {}
+        for group_key, rides in groups.items():
+            by_dep = sorted(rides, key=lambda d: (d.dep_min, d.arr_min, d.trip_id))
+            deps = [d.dep_min for d in by_dep]
+            last = max(rides, key=lambda d: (d.dep_min, -d.arr_min, d.trip_id))
+            tables[group_key] = (by_dep, deps, last)
+        self._pair_cache[key] = tables
+        return tables
 
     def next_journey(
         self,
@@ -319,31 +431,23 @@ class ScheduleIndex:
 
         to_ids = {(s.agency, s.stop_id) for s in to_stops}
         from_ids = {(s.agency, s.stop_id) for s in from_stops}
-        # Earliest arrival at each intermediate stop.
-        best_first: dict[tuple[str, str], Departure] = {}
-        for ride in self._rides_from(from_stops, service_date):
-            if ride.dep_min < after_min:
-                continue
-            key = (ride.agency, ride.to_stop.stop_id)
+        from_tables = self._from_tables(from_stops, service_date)
+        to_tables = self._to_tables(to_stops, service_date)
+        for key, (by_dep, deps, suffix_min_arr, _, _, _) in from_tables.items():
             if key in to_ids or key in from_ids:
                 continue
-            cur = best_first.get(key)
-            if cur is None or (ride.arr_min, ride.dep_min, ride.trip_id) < (
-                cur.arr_min, cur.dep_min, cur.trip_id
-            ):
-                best_first[key] = ride
-        second_by_stop: dict[tuple[str, str], list[Departure]] = {}
-        for ride in self._rides_to(to_stops, service_date):
-            second_by_stop.setdefault(
-                (ride.agency, ride.from_stop.stop_id), []
-            ).append(ride)
-        for rides in second_by_stop.values():
-            rides.sort(key=lambda d: (d.dep_min, d.arr_min, d.trip_id))
-        for key, first in best_first.items():
-            for second in second_by_stop.get(key, ()):
-                if second.dep_min >= first.arr_min + transfer_buffer_min:
-                    candidates.append((first, second))
-                    break
+            second_group = to_tables.get(key)
+            if second_group is None:
+                continue
+            i = bisect.bisect_left(deps, after_min)
+            if i >= len(by_dep):
+                continue
+            first = by_dep[suffix_min_arr[i]]
+            s_by_dep, s_deps, _ = second_group
+            j = bisect.bisect_left(s_deps, first.arr_min + transfer_buffer_min)
+            if j >= len(s_by_dep):
+                continue
+            candidates.append((first, s_by_dep[j]))
 
         if not candidates:
             return None
@@ -373,35 +477,20 @@ class ScheduleIndex:
 
         to_ids = {(s.agency, s.stop_id) for s in to_stops}
         from_ids = {(s.agency, s.stop_id) for s in from_stops}
-        # Latest second-leg departure from each intermediate stop: a later
-        # connection allows a later first-leg arrival, hence departure.
-        last_second: dict[tuple[str, str], Departure] = {}
-        for ride in self._rides_to(to_stops, service_date):
-            key = (ride.agency, ride.from_stop.stop_id)
+        from_tables = self._from_tables(from_stops, service_date)
+        to_tables = self._to_tables(to_stops, service_date)
+        for key, (_, _, last_second) in to_tables.items():
             if key in to_ids or key in from_ids:
                 continue
-            cur = last_second.get(key)
-            if cur is None or (ride.dep_min, -ride.arr_min, ride.trip_id) > (
-                cur.dep_min, -cur.arr_min, cur.trip_id
-            ):
-                last_second[key] = ride
-        firsts_by_stop: dict[tuple[str, str], list[Departure]] = {}
-        for ride in self._rides_from(from_stops, service_date):
-            firsts_by_stop.setdefault(
-                (ride.agency, ride.to_stop.stop_id), []
-            ).append(ride)
-        for key, second in last_second.items():
-            latest_arr_allowed = second.dep_min - transfer_buffer_min
-            best_first: Optional[Departure] = None
-            for first in firsts_by_stop.get(key, ()):
-                if first.arr_min > latest_arr_allowed:
-                    continue
-                if best_first is None or (
-                    first.dep_min, -first.arr_min, first.trip_id
-                ) > (best_first.dep_min, -best_first.arr_min, best_first.trip_id):
-                    best_first = first
-            if best_first is not None:
-                candidates.append((best_first, second))
+            first_group = from_tables.get(key)
+            if first_group is None:
+                continue
+            _, _, _, by_arr, arrs, prefix_max_dep = first_group
+            latest_arr_allowed = last_second.dep_min - transfer_buffer_min
+            i = bisect.bisect_right(arrs, latest_arr_allowed) - 1
+            if i < 0:
+                continue
+            candidates.append((by_arr[prefix_max_dep[i]], last_second))
 
         if not candidates:
             return None

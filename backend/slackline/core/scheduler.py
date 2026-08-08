@@ -190,19 +190,54 @@ def build_itinerary(
                 running_cost += cand.price_usd
 
     # --- require_meal_window forced pass ---------------------------------------
+    # Position search is window-aware: the meal must actually land inside
+    # the required interval, not merely somewhere feasible. A meal beats
+    # sightseeing: if nothing fits, evict the lowest-ranked placed non-food
+    # candidate (deterministically) and retry, until it fits or nothing is
+    # left to evict.
+    def _placed_cost(refs: list[str]) -> float:
+        return sum(
+            by_id[r].price_usd or 0.0
+            for r in refs
+            if not r.startswith("anchor:")
+        )
+
     for window in meal_windows:
-        if _has_food_in_window(order, by_id, layout, window.start_min, window.end_min):
-            continue
-        for cand in ordered:
-            if not cand.is_food or cand.id in placed_ids:
-                continue
-            trial = _try_insert(order, cand.id, layout)
-            if trial is not None and _has_food_in_window(
-                trial, by_id, layout, window.start_min, window.end_min
-            ):
-                order = trial
-                placed_ids.append(cand.id)
+        while not _has_food_in_window(
+            order, by_id, layout, window.start_min, window.end_min
+        ):
+            inserted = False
+            for cand in ordered:
+                if not cand.is_food or cand.id in placed_ids:
+                    continue
+                if cost_cap is not None and cand.price_usd is not None:
+                    projected = (
+                        _placed_cost(order) + cand.price_usd
+                        + constants.TRANSIT_ALLOWANCE_USD
+                    )
+                    if projected > cost_cap:
+                        continue
+                trial = _try_insert_in_window(
+                    order, cand.id, layout, window.start_min, window.end_min
+                )
+                if trial is not None:
+                    order = trial
+                    placed_ids.append(cand.id)
+                    inserted = True
+                    break
+            if inserted:
                 break
+            evictable = [
+                ref for ref in order
+                if not ref.startswith("anchor:") and not by_id[ref].is_food
+            ]
+            if not evictable:
+                break
+            victim = max(
+                evictable, key=lambda ref: (rank_of.get(ref, 10_000), ref)
+            )
+            order = [ref for ref in order if ref != victim]
+            placed_ids = [pid for pid in placed_ids if pid != victim]
 
     # --- local improvement: adjacent candidate swaps ------------------------------
     order = _improve(order, layout)
@@ -243,6 +278,30 @@ def _try_insert(order: list[str], cand_id: str, layout) -> Optional[list[str]]:
         if lateness <= base_lateness and cand_id not in bad and bad <= base_bad:
             return trial
     return None
+
+
+def _try_insert_in_window(
+    order: list[str], cand_id: str, layout, win_start: int, win_end: int
+) -> Optional[list[str]]:
+    """Like _try_insert, but the inserted item must overlap
+    [win_start, win_end), and among acceptable positions the one closest to
+    the window midpoint wins (earlier position on ties). A meal at the edge
+    of a long gap does not split it; one in the middle does."""
+    _, base_lateness, base_bad = layout(order)
+    window_mid = (win_start + win_end) // 2
+    best: Optional[tuple[int, int, list[str]]] = None
+    for pos in range(len(order) + 1):
+        trial = order[:pos] + [cand_id] + order[pos:]
+        points, lateness, bad = layout(trial)
+        if lateness > base_lateness or cand_id in bad or not bad <= base_bad:
+            continue
+        placed = next(p for p in points if p.ref == cand_id)
+        if not (placed.start < win_end and placed.end > win_start):
+            continue
+        distance = abs((placed.start + placed.end) // 2 - window_mid)
+        if best is None or (distance, pos) < (best[0], best[1]):
+            best = (distance, pos, trial)
+    return best[2] if best else None
 
 
 def _has_food_in_window(

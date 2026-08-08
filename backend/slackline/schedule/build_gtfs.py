@@ -156,6 +156,10 @@ def load_agency(
     for row in _rows(zf, "stops.txt"):
         if not row.get("stop_lat") or not row.get("stop_lon"):
             continue
+        # Entrances, generic nodes and boarding areas (location_type 2/3/4)
+        # are not boardable; they pollute nearest-stop queries.
+        if (row.get("location_type") or "0") not in ("0", "1"):
+            continue
         stops.append(
             (
                 agency,

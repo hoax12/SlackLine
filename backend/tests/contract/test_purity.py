@@ -54,11 +54,17 @@ def test_core_imports_with_sockets_disabled(monkeypatch):
     monkeypatch.setattr(socket, "create_connection", _boom)
     monkeypatch.setattr(socket, "getaddrinfo", _boom)
 
+    # Other test files may legitimately import network-capable build-time
+    # modules (e.g. build_gtfs). Only additions caused by importing the pure
+    # chain count.
+    preexisting = set(sys.modules)
+
     for mod in CORE_MODULES:
         __import__(mod)
 
+    added = set(sys.modules) - preexisting
     for forbidden in FORBIDDEN_IMPORTS:
-        assert forbidden not in sys.modules, (
+        assert forbidden not in added, (
             f"pure module chain imported {forbidden}"
         )
 

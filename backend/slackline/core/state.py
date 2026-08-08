@@ -114,6 +114,13 @@ class Leg(Frozen):
     trip_id: Optional[str] = None
     from_stop: Optional[str] = None
     to_stop: Optional[str] = None
+    # Scheduled transit departure/arrival at the stops (verified legs only);
+    # depart_min/arrive_min above are door-to-door including stop walks.
+    transit_depart_min: Optional[int] = None
+    transit_arrive_min: Optional[int] = None
+    # Last scheduled departure of the day for the same stop pair, so the
+    # Auditor and UI can name the binding constraint without index access.
+    last_depart_of_day_min: Optional[int] = None
     note: str = ""
 
 

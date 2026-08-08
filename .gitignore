@@ -30,6 +30,10 @@ frontend/dist/
 *.env
 tokens
 
+# Scratch verification scripts
+backend/_verify_bart.py
+backend/_bart_*.txt
+
 # OS / editor
 .DS_Store
 Thumbs.db

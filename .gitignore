@@ -1,0 +1,35 @@
+# Virtual environments
+Geolens/
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Raw GTFS downloads (only the derived fixture extract is committed)
+backend/data/raw/
+*.zip
+
+# Built artifacts (rebuilt by build scripts; fixture copies live in tests/fixtures)
+backend/data/schedule_index.sqlite
+
+# Telemetry output
+backend/var/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Env / secrets
+.env
+*.env
+tokens
+
+# OS / editor
+.DS_Store
+Thumbs.db

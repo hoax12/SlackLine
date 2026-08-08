@@ -137,6 +137,20 @@ def resolve_leg(
         "date outside feed validity" if not index.covers(service_date)
         else "no verified ride found"
     )
+    # When service simply ended for the day, say so: attach the last
+    # departure of the day so the Auditor can flag a stranding from state
+    # alone. This is the signature failure the whole project exists to catch.
+    last_dep_min = None
+    last_agency = None
+    if index is not None and index.covers(service_date):
+        last = _last_journey_info(index, from_loc, to_loc, service_date)
+        if last is not None:
+            last_dep_min, last_agency = last
+            if last_dep_min < earliest_depart_min + constants.TRANSFER_BUFFER_MIN:
+                reason = (
+                    f"after last {last_agency} departure "
+                    f"{minutes_to_hhmm(last_dep_min)}"
+                )
     estimate_leg = Leg(
         from_ref=from_ref,
         to_ref=to_ref,
@@ -144,9 +158,33 @@ def resolve_leg(
         depart_min=earliest_depart_min,
         arrive_min=earliest_depart_min + est_min,
         provenance="estimated",
+        agency=last_agency,
+        last_depart_of_day_min=last_dep_min,
         note=f"estimated transit ~{est_min} min ({reason})",
     )
     return estimate_leg if estimate_leg.arrive_min < walk_leg.arrive_min else walk_leg
+
+
+def _last_journey_info(
+    index: ScheduleIndexLike,
+    from_loc: LatLng,
+    to_loc: LatLng,
+    service_date: str,
+) -> Optional[tuple[int, str]]:
+    from_stops = list(
+        index.stops_near(from_loc.lat, from_loc.lon, radius_km=STOP_WALK_RADIUS_KM)
+    )
+    to_stops = list(
+        index.stops_near(to_loc.lat, to_loc.lon, radius_km=STOP_WALK_RADIUS_KM)
+    )
+    if not from_stops or not to_stops:
+        return None
+    last = index.last_journey(
+        from_stops, to_stops, service_date, constants.TRANSFER_BUFFER_MIN
+    )
+    if not last:
+        return None
+    return last[0].dep_min, last[0].agency
 
 
 def _verified_transit_leg(

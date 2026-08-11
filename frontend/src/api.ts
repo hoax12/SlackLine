@@ -44,15 +44,21 @@ export async function streamPlan(
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
-    let sep;
-    while ((sep = buffer.indexOf("\n\n")) >= 0) {
-      const frame = buffer.slice(0, sep);
-      buffer = buffer.slice(sep + 2);
+    // Frames are CRLF-delimited on the wire (sse-starlette); match either
+    // ending rather than LF only. Matching on the buffer — not per chunk —
+    // keeps a CRLF pair split across two chunks from being missed.
+    for (;;) {
+      const sep = /\r\n\r\n|\n\n/.exec(buffer);
+      if (!sep) break;
+      const frame = buffer.slice(0, sep.index);
+      buffer = buffer.slice(sep.index + sep[0].length);
       let eventName = "";
       let data = "";
-      for (const line of frame.split("\n")) {
+      for (const line of frame.split(/\r?\n/)) {
         if (line.startsWith("event:")) eventName = line.slice(6).trim();
-        else if (line.startsWith("data:")) data += line.slice(5).trim();
+        // Per SSE, only one leading space is stripped; trimming would eat
+        // meaningful whitespace inside narration text.
+        else if (line.startsWith("data:")) data += line.slice(5).replace(/^ /, "");
       }
       if (!eventName || !data) continue;
       try {

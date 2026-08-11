@@ -82,7 +82,11 @@ def build_itinerary(
     for c in constraints:
         if c.kind == "must_depart_by":
             cap = depart_caps.get(c.from_ref)
-            depart_caps[c.from_ref] = min(cap, c.depart_min) if cap else c.depart_min
+            # `is not None`, not truthiness: a cap of 0 (midnight) is a real
+            # cap and must not be replaced by a looser one.
+            depart_caps[c.from_ref] = (
+                min(cap, c.depart_min) if cap is not None else c.depart_min
+            )
     cost_cap: Optional[float] = None
     for c in constraints:
         if c.kind == "max_total_cost":

@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  html, body { margin:0; padding:0; background:#0a0c0f; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  a { color:#c7f36b; text-decoration:none; }
+  a:hover { color:#e2ffa8; }
+  input, button { font:inherit; color:inherit; }
+  button { cursor:pointer; }
+  @keyframes slIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+  @keyframes slPulse { 0%,100% { opacity:.35; } 50% { opacity:1; } }
+  @keyframes slSheet { from { transform:translateY(24px); opacity:0; } to { transform:none; opacity:1; } }
+</style>
+</helmet>
+<div style="min-height:100vh;background:#0a0c0f;color:#f5f3ed;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;display:flex;justify-content:center;padding:0 16px 40px">
+<div style="width:100%;max-width:460px">
+
+  <div style="display:flex;align-items:center;gap:9px;padding:20px 2px 22px">
+    <span style="width:8px;height:8px;border-radius:50%;background:#c7f36b"></span>
+    <span style="font-size:15px;font-weight:600;letter-spacing:-0.01em">Slackline</span>
+  </div>
+
+  <sc-if value="{{isInput}}" hint-placeholder-val="{{ true }}">
+  <div style="animation:slIn .4s ease both">
+    <h1 style="margin:0 0 26px;font-size:26px;line-height:1.2;font-weight:600;letter-spacing:-0.02em;text-wrap:pretty">Plan a day that actually holds.</h1>
+
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <label style="display:flex;flex-direction:column;gap:7px">
+        <span style="font-size:13px;color:#b5b9bd">Starting from</span>
+        <input type="text" value="{{ originValue }}" onChange="{{ setOrigin }}" style="background:#111419;border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:13px 14px;font-size:16px;outline:none" />
+      </label>
+
+      <label style="display:flex;flex-direction:column;gap:7px">
+        <span style="font-size:13px;color:#b5b9bd">Date</span>
+        <input type="date" value="{{ dateValue }}" onChange="{{ setDate }}" style="background:#111419;border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:13px 14px;font-size:16px;outline:none;color-scheme:dark" />
+      </label>
+
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <span style="font-size:13px;color:#b5b9bd">What you're into</span>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <sc-for list="{{ interests }}" as="tag" hint-placeholder-count="6">
+            <button onClick="{{ tag.toggle }}" style="border:1px solid {{ tag.border }};background:{{ tag.bg }};color:{{ tag.fg }};border-radius:999px;padding:12px 16px;font-size:14px">{{ tag.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <label style="display:flex;flex-direction:column;gap:7px">
+        <span style="font-size:13px;color:#b5b9bd">Budget for the day <span style="color:#747b83">— optional</span></span>
+        <span style="display:flex;align-items:center;background:#111419;border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:0 14px">
+          <span style="color:#747b83;font-size:16px">$</span>
+          <input type="text" value="{{ budgetValue }}" onChange="{{ setBudget }}" placeholder="Any" style="background:transparent;border:0;padding:13px 8px;font-size:16px;outline:none;width:100%" />
+        </span>
+      </label>
+
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <span style="font-size:13px;color:#b5b9bd">Anything you can't move</span>
+        <div style="display:flex;align-items:center;gap:12px;background:#111419;border:1px solid rgba(199,243,107,0.28);border-radius:12px;padding:13px 14px">
+          <span style="width:6px;height:6px;border-radius:50%;background:#c7f36b;flex:none"></span>
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-size:15px">Dinner with college friends</span>
+            <span style="display:block;font-size:13px;color:#747b83;margin-top:2px">7:00–9:00pm · University Ave, Palo Alto</span>
+          </span>
+          <button style="background:transparent;border:0;color:#747b83;font-size:18px;line-height:1;width:44px;height:44px;flex:none;display:flex;align-items:center;justify-content:center;margin:-10px -10px -10px 0">×</button>
+        </div>
+        <button style="text-align:left;background:transparent;border:1px dashed rgba(255,255,255,0.16);border-radius:12px;padding:12px 14px;font-size:14px;color:#b5b9bd">+ Add something fixed</button>
+      </div>
+    </div>
+
+    <button onClick="{{ start }}" style="width:100%;margin-top:26px;background:#c7f36b;color:#0a0c0f;border:0;border-radius:14px;padding:16px;font-size:16px;font-weight:600;letter-spacing:-0.01em">Check my day</button>
+
+    <div style="margin-top:26px;display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:13px;color:#747b83">Or start from one of ours</span>
+      <button onClick="{{ start }}" style="text-align:left;background:#111419;border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:13px 14px;font-size:14px">SoMa hotel → 7pm dinner in Palo Alto</button>
+      <button onClick="{{ start }}" style="text-align:left;background:#111419;border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:13px 14px;font-size:14px">Berkeley → Saturday show in San Francisco</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{isRunning}}" hint-placeholder-val="{{ true }}">
+  <div>
+    <div style="display:flex;align-items:center;gap:10px;min-height:26px;margin-bottom:22px">
+      <span style="width:7px;height:7px;border-radius:50%;background:{{ statusDot }};animation:slPulse 1.1s ease-in-out infinite;flex:none"></span>
+      <span style="font-size:17px;font-weight:500;letter-spacing:-0.01em;color:{{ statusColor }};text-wrap:pretty">{{ statusText }}</span>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{isResult}}" hint-placeholder-val="{{ true }}">
+  <div style="animation:slIn .5s ease both;margin-bottom:22px">
+    <h1 style="margin:0 0 10px;font-size:27px;line-height:1.18;font-weight:600;letter-spacing:-0.02em;text-wrap:pretty">{{ headline }}</h1>
+    <p style="margin:0;font-size:15px;line-height:1.5;color:#b5b9bd;text-wrap:pretty">{{ subhead }}</p>
+
+    <sc-if value="{{ hasFlag }}" hint-placeholder-val="{{ true }}">
+      <button onClick="{{ openFlagged }}" style="display:flex;width:100%;text-align:left;align-items:center;gap:13px;margin-top:16px;background:rgba(255,190,98,0.10);border:1px solid rgba(255,190,98,0.32);border-radius:14px;padding:14px">
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:15px;font-weight:600;color:#ffbe62">{{ flagTitle }}</span>
+          <span style="display:block;font-size:14px;color:#e4d7bd;margin-top:3px;line-height:1.45">{{ flagBody }}</span>
+        </span>
+        <span style="color:#ffbe62;font-size:18px;flex:none">›</span>
+      </button>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ showTimeline }}" hint-placeholder-val="{{ true }}">
+  <div>
+    <sc-for list="{{ rows }}" as="row" hint-placeholder-count="7">
+      <div style="opacity:{{ row.op }};transition:opacity .45s ease">
+
+        <sc-if value="{{ row.isStop }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <span style="width:60px;flex:none;padding-top:1px;font-size:13px;color:{{ row.timeColor }};font-variant-numeric:tabular-nums;transition:color .4s ease">{{ row.time }}</span>
+            <span style="width:11px;height:11px;border-radius:50%;flex:none;margin-top:5px;background:{{ row.dotBg }};border:2px solid {{ row.dotBorder }};transition:all .4s ease"></span>
+            <span style="flex:1;min-width:0;padding-bottom:2px">
+              <span style="display:block;font-size:16px;font-weight:500;letter-spacing:-0.01em;text-wrap:pretty">{{ row.name }}</span>
+              <span style="display:block;font-size:13px;color:#747b83;margin-top:2px">{{ row.sub }}</span>
+              <sc-if value="{{ row.fixed }}" hint-placeholder-val="{{ true }}">
+                <span style="display:inline-block;margin-top:7px;font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:#c7f36b;border:1px solid rgba(199,243,107,0.35);border-radius:999px;padding:3px 9px">You can't move this</span>
+              </sc-if>
+            </span>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ row.isCalm }}" hint-placeholder-val="{{ true }}">
+          <div onClick="{{ row.open }}" style="display:flex;gap:14px;align-items:stretch;cursor:pointer">
+            <span style="width:60px;flex:none"></span>
+            <span style="width:11px;flex:none;display:flex;justify-content:center"><span style="width:1px;background:rgba(255,255,255,0.14);min-height:52px"></span></span>
+            <span style="flex:1;min-width:0;padding:11px 0 13px;display:flex;align-items:center;gap:10px">
+              <span style="flex:1;min-width:0">
+                <span style="display:block;font-size:14px;color:#b5b9bd;text-wrap:pretty">{{ row.summary }}</span>
+                <span style="display:block;font-size:12px;color:{{ row.checkColor }};margin-top:3px">{{ row.checkLabel }}</span>
+              </span>
+              <span style="font-size:13px;color:#747b83;flex:none;font-variant-numeric:tabular-nums">{{ row.spareText }}</span>
+            </span>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ row.isTight }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:14px;align-items:stretch">
+            <span style="width:60px;flex:none"></span>
+            <span style="width:11px;flex:none;display:flex;justify-content:center"><span style="width:3px;background:{{ row.accent }};min-height:100%;border-radius:2px"></span></span>
+            <button onClick="{{ row.open }}" style="flex:1;min-width:0;text-align:left;margin:10px 0 12px;background:{{ row.tintBg }};border:1px solid {{ row.tintBorder }};border-radius:14px;padding:15px">
+              <span style="display:flex;align-items:baseline;gap:9px">
+                <span style="font-size:24px;font-weight:600;letter-spacing:-0.02em;color:{{ row.accent }};font-variant-numeric:tabular-nums">{{ row.spareBig }}</span>
+                <span style="font-size:14px;color:{{ row.accent }}">{{ row.spareUnit }}</span>
+              </span>
+              <span style="display:block;font-size:14px;line-height:1.5;color:#e8e4da;margin-top:7px;text-wrap:pretty">{{ row.why }}</span>
+              <span style="display:block;font-size:13px;font-weight:600;color:{{ row.checkColor }};margin-top:10px">{{ row.checkLabel }}</span>
+              <span style="display:flex;align-items:center;gap:8px;margin-top:11px;padding-top:11px;border-top:1px solid rgba(255,255,255,0.10)">
+                <span style="flex:1;min-width:0;font-size:13px;color:#b5b9bd;text-wrap:pretty">{{ row.summary }}</span>
+                <span style="font-size:16px;color:#747b83;flex:none">›</span>
+              </span>
+            </button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ row.isPending }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:14px;align-items:stretch">
+            <span style="width:60px;flex:none"></span>
+            <span style="width:11px;flex:none;display:flex;justify-content:center"><span style="width:1px;background:rgba(255,255,255,0.14);min-height:44px"></span></span>
+            <span style="flex:1;min-width:0;padding:11px 0 13px;font-size:13px;color:{{ row.checkColor }}">{{ row.checkLabel }}</span>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ row.isAlert }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:14px;align-items:stretch;animation:slIn .35s ease both">
+            <span style="width:60px;flex:none"></span>
+            <span style="width:11px;flex:none;display:flex;justify-content:center"><span style="width:3px;background:#ff766c;min-height:100%;border-radius:2px"></span></span>
+            <span style="flex:1;min-width:0;margin:10px 0 12px;background:rgba(255,118,108,0.10);border:1px solid rgba(255,118,108,0.32);border-radius:14px;padding:14px;font-size:14px;line-height:1.5;color:#ffd7d3;text-wrap:pretty">{{ row.alertText }}</span>
+          </div>
+        </sc-if>
+
+      </div>
+    </sc-for>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isResult }}" hint-placeholder-val="{{ true }}">
+  <div style="margin-top:24px">
+    <sc-if value="{{ hasNote }}" hint-placeholder-val="{{ true }}">
+      <p style="margin:0 0 20px;font-size:14px;line-height:1.55;color:#b5b9bd;background:#111419;border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:15px;text-wrap:pretty">{{ noteText }}</p>
+    </sc-if>
+    <div style="display:flex;gap:10px">
+      <button onClick="{{ reset }}" style="flex:1;background:#171b21;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:14px;font-size:15px">Change something</button>
+      <button style="flex:1;background:#171b21;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:14px;font-size:15px">Send to my phone</button>
+    </div>
+    <p style="margin:18px 0 0;font-size:12px;color:#5f666d;line-height:1.55">{{ footerText }}</p>
+  </div>
+  </sc-if>
+
+  <div style="margin-top:34px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.07);display:flex;flex-wrap:wrap;align-items:center;gap:7px">
+    <span style="font-size:11px;color:#464c52;margin-right:3px">States</span>
+    <sc-for list="{{ demoStates }}" as="d" hint-placeholder-count="5">
+      <button onClick="{{ d.go }}" style="background:{{ d.bg }};border:1px solid rgba(255,255,255,0.08);color:{{ d.fg }};border-radius:8px;padding:5px 9px;font-size:11px">{{ d.label }}</button>
+    </sc-for>
+  </div>
+
+</div>
+
+<sc-if value="{{ sheet }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;background:rgba(4,5,7,0.72);display:flex;align-items:flex-end;justify-content:center;z-index:40;padding:16px">
+    <div style="width:100%;max-width:460px;background:#14181e;border:1px solid rgba(255,255,255,0.13);border-radius:20px;padding:20px;animation:slSheet .28s cubic-bezier(.2,.8,.2,1) both;max-height:82vh;overflow:auto">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <span style="flex:1;min-width:0;font-size:17px;font-weight:600;letter-spacing:-0.01em;text-wrap:pretty">{{ sheet.title }}</span>
+        <button onClick="{{ closeSheet }}" style="background:transparent;border:0;color:#747b83;font-size:22px;line-height:1;width:44px;height:44px;flex:none;display:flex;align-items:center;justify-content:center;margin:-11px -12px -11px 0">×</button>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:18px">
+        <sc-for list="{{ sheet.legs }}" as="leg" hint-placeholder-count="3">
+          <div style="display:flex;gap:12px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.07)">
+            <span style="width:96px;flex:none;font-size:12px;color:#747b83;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-variant-numeric:tabular-nums">{{ leg.times }}</span>
+            <span style="flex:1;min-width:0">
+              <span style="display:block;font-size:14px;text-wrap:pretty">{{ leg.label }}</span>
+              <span style="display:block;font-size:12px;color:{{ leg.color }};margin-top:3px">{{ leg.status }}</span>
+            </span>
+          </div>
+        </sc-for>
+      </div>
+
+      <span style="display:block;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#747b83;margin-bottom:7px">What limits this</span>
+      <p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#e8e4da;text-wrap:pretty">{{ sheet.limit }}</p>
+
+      <div style="background:#0e1116;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:13px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;line-height:1.7;color:#8f979f;white-space:pre-wrap">{{ sheet.precise }}</div>
+    </div>
+  </div>
+</sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:940},&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;good&quot;,&quot;partial&quot;,&quot;failed&quot;],&quot;default&quot;:&quot;good&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Demo&quot;},&quot;tightMinutes&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:45,&quot;min&quot;:10,&quot;max&quot;:180,&quot;unit&quot;:&quot;min&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Behaviour&quot;},&quot;showSpareOnCalm&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behaviour&quot;},&quot;waitSpeed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1.5,&quot;min&quot;:0.25,&quot;max&quot;:3,&quot;step&quot;:0.25,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Behaviour&quot;}}">
+const AMBER = "#ffbe62", LIME = "#c7f36b", MUTED = "#747b83", SOFT = "#b5b9bd";
+
+function spareWords(m) {
+  if (m < 60) return m + " min to spare";
+  const h = Math.floor(m / 60), mm = m % 60;
+  return mm ? h + "h " + mm + "m to spare" : h + "h to spare";
+}
+
+const DAY = {
+  stops: [
+    { name: "SoMa hotel", sub: "Leave here", time: "9:33am" },
+    { name: "SFMOMA", sub: "151 Third Street", time: "9:45am – 12:15pm" },
+    { name: "Ferry Building Marketplace", sub: "Lunch", time: "12:24 – 1:45pm" },
+    { name: "Mission Dolores Park", sub: "", time: "2:15 – 4:52pm" },
+    { name: "Dinner with college friends", sub: "University Ave, Palo Alto", time: "7:00 – 9:00pm", fixed: true },
+    { name: "Back at the hotel", sub: "", time: "10:35pm" }
+  ],
+  gaps: [
+    {
+      summary: "Walk, 12 minutes", spare: 260, kind: "walk",
+      title: "SoMa hotel → SFMOMA",
+      legs: [{ times: "9:33 → 9:45am", label: "Walk down Howard St, 0.6 mi", status: "Walking — nothing to check", color: MUTED }],
+      limit: "SFMOMA closes at 5:00pm and you want two and a half hours inside. You could leave the hotel as late as 2:03pm and still get that.",
+      precise: "slack 260 min\nbinding: venue_close SFMOMA 17:00\nmode walk · 0.6 mi @ 3.0 mph"
+    },
+    {
+      summary: "Walk, 9 minutes", spare: 225, kind: "walk",
+      title: "SFMOMA → Ferry Building",
+      legs: [{ times: "12:15 → 12:24pm", label: "Walk up Mission St, 0.5 mi", status: "Walking — nothing to check", color: MUTED }],
+      limit: "Most food stalls at the Ferry Building stop serving around 4:00pm.",
+      precise: "slack 225 min\nbinding: venue_close Ferry Building 16:00\nmode walk · 0.5 mi @ 3.0 mph"
+    },
+    {
+      summary: "Walk, then the J-Church — about 33 minutes", spare: 132, kind: "estimated",
+      title: "Ferry Building → Dolores Park",
+      legs: [
+        { times: "1:45 → 1:51pm", label: "Walk to Embarcadero Station", status: "Walking — nothing to check", color: MUTED },
+        { times: "1:51 → 2:15pm", label: "Muni J-Church to Church & 18th", status: "Estimated — we don't have Muni's timetable", color: AMBER }
+      ],
+      limit: "Nothing here is urgent. You'd need to leave Dolores Park by 5:13pm at the latest, and you're planning to leave at 4:52.",
+      precise: "slack 132 min\nbinding: downstream departure 17:13\nmuni leg: estimated, 27 min mean travel time"
+    },
+    {
+      summary: "J-Church to 4th & King, then Caltrain 324", spare: 21, kind: "verified",
+      title: "Dolores Park → Dinner in Palo Alto",
+      why: "Leave Dolores Park any later than 5:13pm and you miss the 5:41 train. The next one gets you to dinner at 7:26pm.",
+      flagTitle: "One tight moment — 4:52pm, leaving Dolores Park",
+      flagBody: "You have 21 minutes of room here. Everywhere else in the day you have hours.",
+      legs: [
+        { times: "4:52 → 5:18pm", label: "Muni J-Church to 4th & King", status: "Estimated — we don't have Muni's timetable", color: AMBER },
+        { times: "5:41 → 6:46pm", label: "Caltrain 324 to Palo Alto", status: "Checked against the published timetable", color: LIME },
+        { times: "6:46 → 6:55pm", label: "Walk to University Ave", status: "Walking — nothing to check", color: MUTED }
+      ],
+      limit: "Your dinner starts at 7:00pm and you can't move it. The 5:41pm train is the last one that gets you there in time — the next, at 6:11, arrives Palo Alto at 7:17 and puts you at the table by 7:26.",
+      precise: "slack 21 min\nbinding: anchor dinner-meetup start 19:00\nCT 324 dep PALO 17:41 arr 18:46 (verified)\nnext feasible: CT 330 dep 18:11 arr 19:17 → +26 min late"
+    },
+    {
+      summary: "Walk, then Caltrain 191 home", spare: 148, kind: "verified",
+      title: "Palo Alto → back at the hotel",
+      note: "Last train home is 11:57pm.",
+      legs: [
+        { times: "9:00 → 9:09pm", label: "Walk to Palo Alto station", status: "Walking — nothing to check", color: MUTED },
+        { times: "9:29 → 10:24pm", label: "Caltrain 191 to 4th & King", status: "Checked against the published timetable", color: LIME },
+        { times: "10:24 → 10:35pm", label: "Walk to the hotel", status: "Walking — nothing to check", color: MUTED }
+      ],
+      limit: "The last northbound train of the night leaves Palo Alto at 11:57pm. You're on the 9:29, so dinner could run nearly three hours over and you'd still get home.",
+      precise: "slack 148 min\nbinding: last_departure CT PALO→SF 23:57 (arr 00:48 +1d)\nCT 191 dep 21:29 arr 22:24 (verified)\nfeed: CT + BA, built 2026-08-08"
+    }
+  ]
+};
+
+const FAILED = {
+  stops: [
+    { name: "SoMa hotel", sub: "Leave here", time: "5:20pm" },
+    { name: "Dinner with college friends", sub: "University Ave, Palo Alto", time: "7:00 – 9:00pm", fixed: true },
+    { name: "Back at the hotel", sub: "", time: "10:35pm" }
+  ],
+  gaps: [
+    {
+      summary: "Walk, then Caltrain 324", spare: 94, kind: "verified",
+      title: "SoMa hotel → Dinner in Palo Alto",
+      legs: [
+        { times: "5:20 → 5:34pm", label: "Walk to 4th & King", status: "Walking — nothing to check", color: MUTED },
+        { times: "5:41 → 6:46pm", label: "Caltrain 324 to Palo Alto", status: "Checked against the published timetable", color: LIME },
+        { times: "6:46 → 6:55pm", label: "Walk to University Ave", status: "Walking — nothing to check", color: MUTED }
+      ],
+      limit: "Your dinner starts at 7:00pm. The 5:41 train is the last one that gets you there in time.",
+      precise: "slack 94 min\nbinding: anchor dinner-meetup start 19:00\nCT 324 dep SF 17:41 arr PALO 18:46 (verified)"
+    },
+    {
+      summary: "Walk, then Caltrain 191 home", spare: 148, kind: "verified",
+      title: "Palo Alto → back at the hotel",
+      note: "Last train home is 11:57pm.",
+      legs: [
+        { times: "9:00 → 9:09pm", label: "Walk to Palo Alto station", status: "Walking — nothing to check", color: MUTED },
+        { times: "9:29 → 10:24pm", label: "Caltrain 191 to 4th & King", status: "Checked against the published timetable", color: LIME }
+      ],
+      limit: "The last northbound train leaves Palo Alto at 11:57pm. You're on the 9:29.",
+      precise: "slack 148 min\nbinding: last_departure CT PALO→SF 23:57\nCT 191 dep 21:29 arr 22:24 (verified)"
+    }
+  ]
+};
+
+const FRAMES = [
+  { ms: 900, status: "Looking for places you might like", stops: 1 },
+  { ms: 750, status: "Looking for places you might like", stops: 2 },
+  { ms: 700, status: "Looking for places you might like", stops: 3 },
+  { ms: 800, status: "Looking for places you might like", stops: 4 },
+  { ms: 1000, status: "Putting them in an order that fits", stops: 6, times: true },
+  { ms: 800, status: "Checking each journey against the timetable", stops: 6, times: true, checked: 1 },
+  { ms: 700, status: "Checking each journey against the timetable", stops: 6, times: true, checked: 2 },
+  { ms: 800, status: "Checking each journey against the timetable", stops: 6, times: true, checked: 3 },
+  { ms: 1900, status: "This part doesn't work", stops: 6, times: true, checked: 4, alertAt: 3, alert: "Leaving Dolores Park at 5:30pm, the next train gets you to dinner at 7:26 — half an hour late.", dot: "#ff766c", pre: true },
+  { ms: 1500, status: "Moving your afternoon earlier", stops: 6, times: true, checked: 3, dot: AMBER },
+  { ms: 800, status: "Checking again", stops: 6, times: true, checked: 4 },
+  { ms: 800, status: "Checking again", stops: 6, times: true, checked: 5 },
+  { ms: 900, status: "Everything holds. Writing it up.", stops: 6, times: true, checked: 5, dot: LIME }
+];
+
+class Component extends DCLogic {
+  state = { view: "input", frame: 0, scenario: null, sheetIndex: null, origin: "SoMa hotel, San Francisco", date: "2026-08-12", budget: "85", picked: ["Museums", "Parks"] };
+
+  componentWillUnmount() { if (this.timer) clearTimeout(this.timer); }
+
+  scenario() { return this.state.scenario ?? this.props.scenario ?? "good"; }
+
+  run() {
+    if (this.timer) clearTimeout(this.timer);
+    this.setState({ view: "running", frame: 0, sheetIndex: null });
+    const speed = this.props.waitSpeed ?? 1;
+    const step = (i) => {
+      if (i >= FRAMES.length) { this.setState({ view: "result" }); return; }
+      this.setState({ frame: i });
+      this.timer = setTimeout(() => step(i + 1), FRAMES[i].ms / speed);
+    };
+    this.timer = setTimeout(() => step(0), 60);
+  }
+
+  data() {
+    const s = this.scenario();
+    if (s === "failed") return FAILED;
+    if (s === "partial") {
+      const gaps = DAY.gaps.map((g, i) => {
+        if (i !== 3 && i !== 4) return g;
+        return Object.assign({}, g, {
+          kind: "estimated",
+          legs: g.legs.map((l) => l.color === LIME
+            ? Object.assign({}, l, { status: "Estimated — this route wasn't in the timetable we have", color: AMBER })
+            : l)
+        });
+      });
+      return { stops: DAY.stops, gaps };
+    }
+    return DAY;
+  }
+
+  checkLabel(kind) {
+    if (kind === "walk") return { label: "Walking — nothing to check", color: MUTED };
+    if (kind === "estimated") return { label: "Estimated — not checked against a timetable", color: AMBER };
+    return { label: "Checked against the timetable", color: "#8fa86a" };
+  }
+
+  legMix(legs) {
+    const transit = legs.filter((l) => l.status.indexOf("Walking") !== 0);
+    if (!transit.length) return { label: "Walking — nothing to check", color: MUTED };
+    const allVerified = transit.every((l) => l.color === LIME);
+    const allEstimated = transit.every((l) => l.color === AMBER);
+    if (allVerified) return { label: "Checked against the timetable", color: "#8fa86a" };
+    if (allEstimated) return { label: "Estimated — not checked against a timetable", color: AMBER };
+    return { label: "The train's checked — the ride to it is a guess", color: AMBER };
+  }
+
+  renderVals() {
+    const view = this.state.view;
+    const s = this.scenario();
+    const data = this.data();
+    const running = view === "running";
+    const frame = running ? FRAMES[Math.min(this.state.frame, FRAMES.length - 1)] : null;
+    const threshold = this.props.tightMinutes ?? 45;
+    const showSpare = this.props.showSpareOnCalm ?? true;
+
+    const stops = running ? DAY.stops : data.stops;
+    const gaps = running ? DAY.gaps : data.gaps;
+    const visibleStops = running ? frame.stops : stops.length;
+
+    const rows = [];
+    for (let i = 0; i < stops.length; i++) {
+      if (i >= visibleStops) break;
+      const st = stops[i];
+      let time = st.time;
+      if (running && frame.pre && i === 3) time = "3:10 – 5:30pm";
+      rows.push({
+        key: "s" + i, isStop: true, op: 1,
+        time: running && !frame.times ? "" : time,
+        timeColor: running && frame.pre && i === 3 ? "#ff766c" : SOFT,
+        name: st.name, sub: st.sub || "", fixed: !!st.fixed,
+        dotBg: st.fixed ? LIME : "#0a0c0f",
+        dotBorder: st.fixed ? LIME : "#4a5058"
+      });
+
+      const g = gaps[i];
+      if (!g || i + 1 >= visibleStops) continue;
+      const idx = i;
+      const chk = this.checkLabel(g.kind);
+      const tight = g.spare <= threshold;
+
+      if (running) {
+        const done = frame.checked || 0;
+        if (frame.alertAt === idx) {
+          rows.push({ key: "g" + i, isAlert: true, op: 1, alertText: frame.alert });
+        } else if (idx < done) {
+          rows.push({
+            key: "g" + i, isCalm: true, op: 1, summary: g.summary,
+            checkLabel: chk.label, checkColor: chk.color,
+            spareText: showSpare ? spareWords(g.spare) : "", open: null
+          });
+        } else {
+          rows.push({ key: "g" + i, isPending: true, op: 0.55, checkLabel: "Checking…", checkColor: MUTED });
+        }
+        continue;
+      }
+
+      const open = () => this.setState({ sheetIndex: idx });
+      if (tight) {
+        const mix = this.legMix(g.legs);
+        rows.push({
+          key: "g" + i, isTight: true, op: 1, open,
+          accent: AMBER, tintBg: "rgba(255,190,98,0.08)", tintBorder: "rgba(255,190,98,0.28)",
+          spareBig: String(g.spare), spareUnit: "minutes of room",
+          why: g.why || "", summary: g.summary,
+          checkLabel: mix.label, checkColor: mix.color
+        });
+      } else {
+        rows.push({
+          key: "g" + i, isCalm: true, op: 1, open, summary: g.summary,
+          checkLabel: chk.label, checkColor: chk.color,
+          spareText: showSpare ? spareWords(g.spare) : ""
+        });
+      }
+    }
+
+    const flagged = gaps.findIndex((g) => g.spare <= threshold);
+    const flag = flagged >= 0 ? gaps[flagged] : null;
+
+    let headline = "Your day holds.";
+    let subhead = "Every journey checked, and you get home with hours to spare.";
+    let noteText = "";
+    if (s === "failed") {
+      headline = "We couldn't build a day that holds.";
+      subhead = "Every version either got you to dinner late or left you in Palo Alto after the last train home. Here is the part we can promise.";
+      noteText = "If dinner could start at 6:00pm instead, a museum and a park both fit. Change the time and we'll try again.";
+    } else if (s === "partial") {
+      headline = "Your day holds — but two journeys are estimates.";
+      subhead = "We couldn't find those two routes in a published timetable, so their times are our best guess rather than a promise.";
+      noteText = "The two estimated rides are marked on the timeline. If they run late, the tight moment before dinner is where you'd feel it.";
+    }
+
+    const sheetIdx = this.state.sheetIndex;
+    const sheetSrc = sheetIdx == null ? null : gaps[sheetIdx];
+    const sheet = sheetSrc ? {
+      title: sheetSrc.title, legs: sheetSrc.legs,
+      limit: sheetSrc.limit, precise: sheetSrc.precise
+    } : null;
+
+    const states = [
+      { id: "input", label: "Input" },
+      { id: "run", label: "Waiting" },
+      { id: "good", label: "It holds" },
+      { id: "partial", label: "Estimated" },
+      { id: "failed", label: "Can't work" }
+    ];
+    const activeId = view === "input" ? "input" : view === "running" ? "run" : s;
+
+    return {
+      isInput: view === "input", isRunning: running, isResult: view === "result",
+      showTimeline: view !== "input",
+      rows, headline, subhead,
+      hasFlag: view === "result" && !!flag && !!flag.flagTitle,
+      flagTitle: flag && flag.flagTitle, flagBody: flag && flag.flagBody,
+      openFlagged: () => this.setState({ sheetIndex: flagged }),
+      hasNote: !!noteText, noteText,
+      footerText: "Train times from Caltrain and BART's published schedules, last read 8 August 2026. Places from Geoapify.",
+      statusText: frame ? frame.status : "",
+      statusDot: frame && frame.dot ? frame.dot : LIME,
+      statusColor: frame && frame.dot === "#ff766c" ? "#ffd7d3" : "#f5f3ed",
+      sheet, closeSheet: () => this.setState({ sheetIndex: null }),
+      start: () => this.run(),
+      reset: () => this.setState({ view: "input", sheetIndex: null }),
+      originValue: this.state.origin,
+      setOrigin: (e) => this.setState({ origin: e.target.value }),
+      dateValue: this.state.date,
+      setDate: (e) => this.setState({ date: e.target.value }),
+      budgetValue: this.state.budget,
+      setBudget: (e) => this.setState({ budget: e.target.value }),
+      interests: ["Museums", "Parks", "Food", "Live music", "Shops", "Views"].map((label) => {
+        const on = this.state.picked.indexOf(label) >= 0;
+        return {
+          label, key: label,
+          bg: on ? "rgba(199,243,107,0.12)" : "#111419",
+          fg: on ? LIME : SOFT,
+          border: on ? "rgba(199,243,107,0.40)" : "rgba(255,255,255,0.10)",
+          toggle: () => this.setState((st) => ({
+            picked: st.picked.indexOf(label) >= 0 ? st.picked.filter((x) => x !== label) : st.picked.concat([label])
+          }))
+        };
+      }),
+      demoStates: states.map((d) => ({
+        label: d.label, key: d.id,
+        bg: activeId === d.id ? "#20262e" : "transparent",
+        fg: activeId === d.id ? "#d6dade" : "#5f666d",
+        go: () => {
+          if (this.timer) clearTimeout(this.timer);
+          if (d.id === "input") this.setState({ view: "input", sheetIndex: null });
+          else if (d.id === "run") { this.setState({ scenario: "good" }); this.run(); }
+          else this.setState({ view: "result", scenario: d.id, sheetIndex: null });
+        }
+      }))
+    };
+  }
+}
+
+</script>
+</body>
+</html>

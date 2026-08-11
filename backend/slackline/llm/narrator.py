@@ -32,6 +32,17 @@ def template_narrate(state: PlanState) -> Iterator[str]:
     yield f"Here is your verified plan for {date}.\n\n"
     by_id = {c.id: c for c in state.candidates}
     anchors = {a.id: a for a in state.request.anchors}
+
+    def name_of(ref: str) -> str:
+        """Human name for a plan ref. Internal ids never reach the reader —
+        nor the model, since this text is also the Narrator's prompt."""
+        if ref in ("origin", "home"):
+            return state.request.origin_label
+        if ref in anchors:
+            return anchors[ref].title
+        cand = by_id.get(ref)
+        return cand.name if cand else ref
+
     for item in itinerary.items:
         if item.kind == "origin":
             label = (
@@ -65,7 +76,8 @@ def template_narrate(state: PlanState) -> Iterator[str]:
     )
     if tightest is not None:
         yield (
-            f"Tightest transition: {tightest.from_ref} to {tightest.to_ref} "
+            f"Tightest transition: {name_of(tightest.from_ref)} to "
+            f"{name_of(tightest.to_ref)} "
             f"with {tightest.slack_min} min of slack "
             f"({tightest.binding_constraint}).\n"
         )

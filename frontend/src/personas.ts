@@ -3,12 +3,19 @@ import type { PlanRequest } from "./types";
 /** Persona templates. Persona B is deliberately scoped to a Saturday —
  * v1 state is strictly single-day and the last-BART-home constraint is the
  * point that survives. */
-export const PERSONAS: { label: string; blurb: string; request: PlanRequest }[] = [
+export const PERSONAS: {
+  id: string;
+  short: string;
+  label: string;
+  blurb: string;
+  request: PlanRequest;
+}[] = [
   {
-    label: "Persona A — SoMa visitor, Palo Alto dinner",
+    id: "persona_a",
+    short: "SoMa → Palo Alto",
+    label: "SoMa visitor, Palo Alto dinner",
     blurb:
-      "Museum-and-park day on an $85 budget; hard 19:00 dinner in Palo Alto. " +
-      "Watch the audit catch the overrun and repair it.",
+      "Museum-and-park day on a budget; hard 19:00 dinner in Palo Alto. Watch the audit catch an overrun and repair it.",
     request: {
       persona: "persona_a",
       service_date: "2026-08-12",
@@ -31,10 +38,11 @@ export const PERSONAS: { label: string; blurb: string; request: PlanRequest }[] 
     },
   },
   {
-    label: "Persona B — Berkeley local, Saturday show in SF",
+    id: "persona_b",
+    short: "Berkeley → Civic Center",
+    label: "Berkeley local, Saturday show in SF",
     blurb:
-      "Saturday on a $40 budget with an evening show at the Civic Center. " +
-      "The last BART home is the binding constraint.",
+      "Saturday with an evening show at Civic Center. The last BART home is the binding constraint — that is the whole point.",
     request: {
       persona: "persona_b",
       service_date: "2026-08-15",

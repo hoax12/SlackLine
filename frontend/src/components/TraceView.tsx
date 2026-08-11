@@ -2,11 +2,11 @@ import type { StreamEvent } from "../types";
 
 const STAGE_LABELS: Record<string, string> = {
   pipeline: "Pipeline",
-  scout: "Scout (sources)",
-  selector: "Selector (model)",
+  scout: "Scout",
+  selector: "Selector",
   scheduler: "Scheduler",
   auditor: "Auditor",
-  narrator: "Narrator (model)",
+  narrator: "Narrator",
 };
 
 /** The live event stream: stages, findings, and — the moment that matters —
@@ -18,25 +18,29 @@ export function TraceView({ events }: { events: StreamEvent[] }) {
         switch (event.type) {
           case "stage_started":
             return (
-              <li key={i} className="trace-row started">
-                <span className="dot" />
-                {STAGE_LABELS[event.stage] ?? event.stage}
+              <li key={i} className="trace-row started enter">
+                <span className="dot pulse" />
+                <span className="trace-label">
+                  {STAGE_LABELS[event.stage] ?? event.stage}
+                </span>
                 {event.iteration > 0 && (
-                  <span className="iter">iteration {event.iteration}</span>
+                  <span className="iter">iter {event.iteration}</span>
                 )}
-                <span className="ellipsis">…</span>
+                <span className="ellipsis">running</span>
               </li>
             );
           case "stage_completed": {
             const payload = event.payload ?? {};
             const heuristic = payload["heuristic"] === true;
             return (
-              <li key={i} className="trace-row completed">
+              <li key={i} className="trace-row completed enter">
                 <span className="dot done" />
-                {STAGE_LABELS[event.stage] ?? event.stage}
+                <span className="trace-label">
+                  {STAGE_LABELS[event.stage] ?? event.stage}
+                </span>
                 <span className="ms">{Math.round(event.ms)} ms</span>
                 {heuristic && (
-                  <span className="badge badge-heuristic">heuristic ranking</span>
+                  <span className="badge badge-heuristic">Heuristic</span>
                 )}
                 {typeof payload["candidate_count"] === "number" && (
                   <span className="detail">
@@ -46,10 +50,11 @@ export function TraceView({ events }: { events: StreamEvent[] }) {
                 {typeof payload["failures"] === "number" &&
                   ((payload["failures"] as number) > 0 ? (
                     <span className="badge badge-fail">
-                      {String(payload["failures"])} failure(s)
+                      {String(payload["failures"])} failure
+                      {(payload["failures"] as number) === 1 ? "" : "s"}
                     </span>
                   ) : (
-                    <span className="badge badge-ok">audit clean</span>
+                    <span className="badge badge-ok">Audit clean</span>
                   ))}
               </li>
             );
@@ -58,31 +63,38 @@ export function TraceView({ events }: { events: StreamEvent[] }) {
             return (
               <li
                 key={i}
-                className={`trace-row finding ${event.finding.severity}`}
+                className={`trace-row finding enter ${event.finding.severity}`}
               >
                 <span className={`badge badge-${event.finding.severity}`}>
-                  {event.finding.severity === "fail" ? "FAIL" : "WARN"}
+                  {event.finding.severity === "fail" ? "Fail" : "Warn"}
                 </span>
                 <span className="check">{event.finding.check}</span>
-                {event.finding.message}
+                <span className="finding-msg">{event.finding.message}</span>
               </li>
             );
           case "repair_iteration":
             return (
-              <li key={i} className="trace-row repair">
+              <li key={i} className="trace-row repair enter">
                 {event.degraded_to_anchors ? (
                   <>
-                    <span className="badge badge-floor">deterministic floor</span>
-                    plan degraded to hard anchors only — everything shown is
-                    provably reachable
+                    <span className="badge badge-floor">Anchors floor</span>
+                    <span>
+                      Degraded to hard anchors — everything shown is provably
+                      reachable
+                    </span>
                   </>
                 ) : (
                   <>
                     <span className="badge badge-repair">
-                      repair iteration {event.iteration}
+                      Repair · pass {event.iteration}
                     </span>
-                    {event.constraints.length} typed constraint(s) added
-                    {event.needs_selector ? ", re-ranking" : ", scheduler-only"}
+                    <span>
+                      {event.constraints.length} typed constraint
+                      {event.constraints.length === 1 ? "" : "s"}
+                      {event.needs_selector
+                        ? " · re-ranking"
+                        : " · scheduler only"}
+                    </span>
                   </>
                 )}
               </li>

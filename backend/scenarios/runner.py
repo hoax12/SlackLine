@@ -28,10 +28,16 @@ SCENARIO_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def load_scenarios() -> list[dict]:
+    """Scenario files only. The glob also matches request fixtures like
+    persona_a_request.json (a bare PlanRequest body used by the curl
+    example), so a scenario is identified by carrying both keys rather
+    than by filename alone."""
     out = []
     for path in sorted(glob.glob(os.path.join(SCENARIO_DIR, "persona_*.json"))):
         with open(path, encoding="utf-8") as fh:
-            out.append(json.load(fh))
+            doc = json.load(fh)
+        if isinstance(doc, dict) and "id" in doc and "request" in doc:
+            out.append(doc)
     return out
 
 

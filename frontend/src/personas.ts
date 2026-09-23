@@ -11,6 +11,34 @@ export const PERSONAS: {
   request: PlanRequest;
 }[] = [
   {
+    id: "persona_c",
+    short: "Cartwright → Innovaccer",
+    label: "LA candidate, Friday onsite",
+    blurb:
+      "Leave LA Thursday, stay at the Cartwright on Sutter. Friday’s 10:00–15:30 onsite at 201 Mission cannot move. You arrive with slack to spare, then a BART ride the schedule actually verifies.",
+    request: {
+      persona: "persona_c",
+      service_date: "2026-09-25",
+      origin: { lat: 37.78925, lon: -122.40914 },
+      origin_label: "Cartwright Hotel, Union Square",
+      day_start_min: 480,
+      day_end_min: 1260,
+      interests: ["food", "park"],
+      budget_usd: 70.0,
+      anchors: [
+        {
+          id: "innovaccer-onsite",
+          title: "Innovaccer onsite interview",
+          location: { lat: 37.791515, lon: -122.395096 },
+          start_min: 600,
+          end_min: 930,
+          notes:
+            "201 Mission Street, Suite 2900. Flew up from LA Thursday. Cannot be late and cannot move.",
+        },
+      ],
+    },
+  },
+  {
     id: "persona_a",
     short: "SoMa → Palo Alto",
     label: "SoMa visitor, Palo Alto dinner",

@@ -290,7 +290,7 @@ main {
 }
 .persona-toggle {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 .persona {
@@ -605,6 +605,7 @@ main {
   .hero { min-height: auto; grid-template-columns: 1fr; padding: 64px 0; }
   .route-card { display: none; }
   .hero h1 { font-size: clamp(3.7rem, 12vw, 5.5rem); }
+  .persona-toggle { grid-template-columns: 1fr; }
   .scenario-summary { flex-direction: column; gap: 12px; }
   .scenario-summary > div { justify-content: flex-start; }
   .results { grid-template-columns: 1fr; }

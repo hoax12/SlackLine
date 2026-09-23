@@ -150,19 +150,19 @@ export default function App() {
             <div className="route-visual">
               <div className="route-stop first">
                 <i />
-                <div><strong>SoMa</strong><small>09:00 · start</small></div>
+                <div><strong>Cartwright</strong><small>08:00 · Union Square</small></div>
               </div>
               <div className="route-leg">
-                <span>Caltrain 142</span>
-                <span>verified</span>
+                <span>Walk ~21 min</span>
+                <span>Sutter → Mission</span>
               </div>
               <div className="route-stop anchor-preview">
                 <i />
-                <div><strong>Palo Alto</strong><small>19:00 · hard anchor</small></div>
+                <div><strong>Innovaccer</strong><small>10:00 · hard anchor</small></div>
               </div>
               <div className="route-margin">
                 <span>Binding margin</span>
-                <strong>+18 <small>min</small></strong>
+                <strong>+41 <small>min</small></strong>
               </div>
             </div>
           </div>

@@ -176,3 +176,12 @@ def _plan_response(request: Request, payload: dict) -> EventSourceResponse:
             yield {"event": name, "data": json.dumps(event, default=str)}
 
     return EventSourceResponse(iterate_in_threadpool(sse_events()))
+
+
+# Same-origin production: the built frontend is served from this process
+# when STATIC_DIR is set (Cloud Run). API routes above keep priority.
+_static = _env("STATIC_DIR")
+if _static and os.path.isdir(_static):
+    from fastapi.staticfiles import StaticFiles
+
+    app.mount("/", StaticFiles(directory=_static, html=True), name="frontend")
